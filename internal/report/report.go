@@ -3,6 +3,13 @@ package report
 import (
 	"fmt"
 )
+type EdgeType string
+var (
+	EdgeTypeLink  EdgeType = "│"
+	EdgeTypeMid   EdgeType = "├──"
+	EdgeTypeNext  EdgeType = "──"
+	EdgeTypeEnd   EdgeType = "└──"
+)
 
 type RefResult struct {
 	Name string
@@ -10,12 +17,14 @@ type RefResult struct {
 	Namespace string
 	Ownerkind string
 	OwnerReference string
+	Images []string
 }
 
 type Node struct {
 	name string
 	namespace string
 	kind string
+	images *[]string
 	child []*Node
 }
 
@@ -30,16 +39,11 @@ func NewNodeTable()  *NodeTable{
 	return  &NodeTable{table:m,root:r}
 }
 
-func (nodeTable *NodeTable) AddNode(name,namespace, kind, parentName string) {
+func (nodeTable *NodeTable) AddNode(name,namespace, kind, parentName string, images *[]string) {
 	fmt.Printf("add: name=%s namespace=%s kind=%s parentId=%s\n", name,namespace, kind, parentName)
-	node := &Node{name: name,namespace:namespace,kind:kind, child: []*Node{}}
+	node := &Node{name: name,namespace:namespace,kind:kind, child: []*Node{},images:images}
 	if parentName == "" {
-		//check if this parent already exists
-		_, ok := nodeTable.table[parentName]
-		if !ok {
-			nodeTable.root =append(nodeTable.root,node)
-		}
-
+		nodeTable.root =append(nodeTable.root,node)
 	} else {
 		parent, ok := nodeTable.table[parentName]
 		if !ok {
@@ -54,17 +58,27 @@ func (nodeTable *NodeTable) AddNode(name,namespace, kind, parentName string) {
 func showNode(node *Node, prefix string) {
 
 	if prefix == "" {
-		fmt.Printf("%v\\%v\\%v\n\n", node.name , node.namespace,node.kind)
-	} else {
-		fmt.Printf("%v %v\\%v\n\n", prefix, node.name,node.kind)
-	}
-	println ("")
-
-		for _, n := range node.child{
-			showNode(n, prefix+"--")
+		fmt.Printf("%v %v\\%v\\%v\n",string(EdgeTypeLink), node.name , node.namespace,node.kind)
+		prefix=string(EdgeTypeEnd)
+		if node.images !=nil{
+			for _, image := range *node.images {
+				fmt.Printf("%v %v\n", string(EdgeTypeLink), image)
+			}
 		}
 
 
+	} else {
+		fmt.Printf("%v %v\\%v\\%v\n", prefix+string(EdgeTypeNext), node.name,node.namespace,node.kind)
+	}
+	//println ("")
+		for i, n := range node.child{
+			if i==0 {
+				showNode(n,  prefix + string(EdgeTypeNext))
+			}else{
+				showNode(n,  prefix + string(EdgeTypeEnd))
+			}
+
+		}
 
 }
 
